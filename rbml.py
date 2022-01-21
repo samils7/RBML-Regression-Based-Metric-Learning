@@ -1,5 +1,6 @@
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_iris, load_diabetes, load_wine
 import numpy as np
+import pandas as pd
 from scipy.spatial import distance
 from sklearn.decomposition import PCA
 from sklearn.neighbors import KNeighborsClassifier
@@ -7,10 +8,18 @@ from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 
 class RBML:
+    """
+    The Default constructor method.
+    :param k nearest neigbour value
+    :param b beta value
+    :param a alfa value
+    """
+
     def __init__(self, k=3, b=3, a=0.3):
         self.b = b
         self.a = a
@@ -18,14 +27,24 @@ class RBML:
         self.x = None
         self.y = None
         self.distance_matrix = None
-        self.knn = KNeighborsClassifier(n_neighbors=self.k)
         self.loo = LeaveOneOut()
         self.kfold = None
+        self.mean_mi = []
+        self.acc = []
+
+    """
+    Training method
+    :param x independent features
+    :param y dependenet feature
+    :param iteration training iteration
+    :return transformed/projected training data
+    """
 
     def fit(self, x, y, iteration=1):
         self.x = x
         self.y = y
-        self.kfold = KFold(n_splits=len(self.x))
+        # k groups = len(dataset), this is equivalent to the Leave One Out strategy,
+        self.kfold = KFold(n_splits=len(self.x) - 50)
 
         for it in range(1, iteration + 1):
             # Distance matrix for all xi points
@@ -48,15 +67,19 @@ class RBML:
                 xi_new = (1 - self.a) * xn + self.a * x_h
                 x_stars.append(xi_new)
 
-            print(f'Iteration {it}\nAvg margin:', np.array(mi_list).mean())
+            mi_mean = np.array(mi_list).mean()
+            self.mean_mi.append(mi_mean)
+            print(f'Iteration {it}\nAvg margin:', mi_mean)
             self.x = np.array(x_stars)
 
             # leave-one-out cross validation with knn classifier
             acc = self.leave_one_out_cross_validation()
             print(f'Accuracy:', acc)
+            self.acc.append(acc)
 
-            #plot_data_3d(self.x, self.y, title=f'Iteration {it}')
-            #plot_data_2d(self.x, self.y, title=f'Iteration {it}')
+
+            # plot_data_3d(self.x, self.y, title=f'Iteration {it}')
+            # plot_data_2d(self.x, self.y, title=f'Iteration {it}')
 
         return self.x
 
@@ -64,8 +87,9 @@ class RBML:
         scores = []
         fold = self.kfold.split(self.x, self.y)
         for k, (train, test) in enumerate(fold):
-            self.knn.fit(self.x[train], self.y[train])
-            y_pred = self.knn.predict(self.x[test])
+            knn = KNeighborsClassifier(n_neighbors=self.k)
+            knn.fit(self.x[train], self.y[train])
+            y_pred = knn.predict(self.x[test])
             scores.append(np.sum(self.y[test] == y_pred) / len(self.y[test]))
         return np.array(scores).mean()
 
@@ -109,53 +133,17 @@ class RBML:
         result = self.x[k_neighbors]
         return result
 
+    def plot_accuracy(self):
+        plt.plot(list(range(1, len(self.acc) + 1)), self.acc)
+        plt.title('Accuracy Score by Iteration')
+        plt.xlabel('Iteration')
+        plt.ylabel('Accuracy')
+        plt.show()
 
-def plot_data_3d(x, y, save_path=None, title=None):
-    x = PCA(n_components=3).fit_transform(x)
-    fig = plt.figure()
-    if title:
-        fig.suptitle(title)
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(x[:, 0], x[:, 1], x[:, 2], c=y)
-    if save_path:
-        plt.savefig(save_path)
-    plt.show()
+    def plot_mean_mi(self):
+        plt.plot(list(range(1, len(self.mean_mi) + 1)), self.mean_mi)
+        plt.title('Mean Mi Score by Iteration')
+        plt.xlabel('Iteration')
+        plt.ylabel('Mean Mi')
+        plt.show()
 
-
-def plot_data_2d(x, y, save_path=None, title=None):
-    x = PCA(n_components=2).fit_transform(x)
-    fig = plt.figure()
-    if title:
-        fig.suptitle(title)
-    ax = fig.add_subplot(111)
-    ax.scatter(x[:, 0], x[:, 1], c=y)
-    if save_path:
-        plt.savefig(save_path)
-    plt.show()
-
-
-if __name__ == '__main__':
-    iris = load_iris()
-    X = iris['data']
-    y = iris['target']
-
-    #plot_data_3d(X, y, save_path='iris_3d.png', title='Iris dataset projected to 3D')
-    plot_data_2d(X, y, save_path='iris_2d.png', title='Iris dataset projected to 2D')
-
-    rbml = RBML()
-    x_rbml = rbml.fit(x=X, y=y, iteration=5)
-
-    #plot_data_3d(rbml.x, y, save_path='iris_3d_rbml.png', title='Iris dataset projected to 3D with RBML')
-    plot_data_2d(rbml.x, y, save_path='iris_2d_rbml.png', title='Iris dataset projected to 2D with RBML')
-
-    # random forest regression to learn regression from iris dataset to x_transformed
-    x_train, x_test, rbml_train, rbml_test = train_test_split(X, x_rbml, test_size=0.2, random_state=42)
-    rf = RandomForestRegressor(n_estimators=4, random_state=42)
-    rf.fit(x_train, rbml_train)
-    x_transformed = rf.predict(x_test)
-    print('regression score:', rf.score(x_test, rbml_test))
-
-    # project all data with learned regression and plot 3D
-    iris_projected = rf.predict(X)
-    #plot_data_3d(iris_projected, y, save_path='iris_3d_transformed.png', title='Iris dataset projected to 3D with Random Forest')
-    plot_data_2d(iris_projected, y, save_path='iris_2d_transformed.png', title='Iris dataset projected to 2D with Random Forest')
