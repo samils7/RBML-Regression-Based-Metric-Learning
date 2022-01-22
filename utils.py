@@ -53,7 +53,7 @@ def evaluate(x, y, dataset):
         acc = k_fold_cross_validation(x, y, k=len(x))
         return acc
     elif dataset in ['vowel', 'balance', 'pima']:
-        pass
+
         """
         250 samples were randomly selected as a training set and the rest were used to define the test set. 
         Hence, 278, 375, and 518 test samples were available for each dataset, respectively. 
@@ -61,6 +61,9 @@ def evaluate(x, y, dataset):
         For each dataset and each method, the average accuracy 
         and the corresponding standard deviation values were computed.
         """
+        acc = k_fold_cross_validation(x, y, k=4)
+        return acc
+
     elif dataset in ['segmentation', 'letters']:
         accs = []
         for i in range(10):

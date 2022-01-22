@@ -18,7 +18,7 @@ def main(dataset_x, dataset_y, dataset_name, alpha=0.5, beta=2, k_neighbors=3, i
     utils.plot_data_2d(dataset_x, dataset_y, save_path=f'{dataset_name}_2d.png', title=f'{dataset_name} dataset visualization on 2D')
 
     initial_eval = utils.evaluate(dataset_x, dataset_y, dataset_name)
-    print(f'Initial Evaluation Score:{initial_eval:.3f}')
+    print(f'Initial Evaluation Score:{initial_eval * 100:.1f}')
 
     # LMNN projection
     lmnn_x_train, lmnn_x_test, lmnn_y_train, lmnn_y_test = train_test_split(dataset_x, dataset_y, test_size=0.7, random_state=42)
@@ -29,13 +29,13 @@ def main(dataset_x, dataset_y, dataset_name, alpha=0.5, beta=2, k_neighbors=3, i
     lmnn_y_pred = knn.predict(lmnn.transform(lmnn_x_test))
     lmnn_acc = knn.score(lmnn.transform(lmnn_x_test), lmnn_y_test)
     #lmnn_acc = utils.evaluate(lmnn_projected, dataset_y, dataset_name)
-    print(f'LMNN Evaluation Score: {lmnn_acc:.3f}')
+    print(f'LMNN Evaluation Score: {lmnn_acc * 100:.1f}')
 
     # RBML projection
     rbml = RBML(alpha, beta, k_neighbors, dataset=dataset_name)
     x_rbml = rbml.fit_transform(x=dataset_x, y=dataset_y, iteration=iteration)
     rbml_acc = utils.evaluate(x_rbml, dataset_y, dataset_name)
-    print(f'RBML Evaluation Score: {rbml_acc:.3f}')
+    print(f'RBML Evaluation Score: {rbml_acc * 100:.1f}')
 
     #utils.plot_accuracy(rbml.evaluation_scores)
     utils.plot_mean_mi(rbml.avg_margins)
@@ -51,13 +51,14 @@ def main(dataset_x, dataset_y, dataset_name, alpha=0.5, beta=2, k_neighbors=3, i
     # project all data with learned regression and plot 3D
     dataset_projected = rf.predict(dataset_x)
     final_acc = utils.evaluate(dataset_projected, dataset_y, dataset_name)
-    print(f'Final Evaluation Score: {final_acc:.3f}')
+    print(f'Final Evaluation Score: {final_acc * 100:.1f}')
     # utils.plot_data_3d(dataset_projected, dataset_y, save_path=f'{dataset_name}_3d_transformed.png', title=f'{dataset_name} dataset after RBML + Random Forest Regression\nFinal Evaluation Score: {final_acc:.3f}')
     utils.plot_data_2d(dataset_projected, dataset_y, save_path=f'{dataset_name}_2d_transformed.png', title=f'{dataset_name} dataset after RBML + Random Forest Regression\nFinal Evaluation Score: {final_acc:.3f}')
 
 
 if __name__ == '__main__':
-    dataset_name = 'sonar'
+    dataset_name = 'balance'
+
     if dataset_name == 'iris':
         iris = load_iris()
         dataset_x, dataset_y = iris.data, iris.target
@@ -72,14 +73,35 @@ if __name__ == '__main__':
         dataset_y[dataset_y == 'R'] = 0
         dataset_y[dataset_y == 'M'] = 1
         dataset_y = dataset_y.astype(int)
-
     elif dataset_name == 'vowel':
-        pass
+        dataset = pd.read_csv("datasets/vowel/vowel-context.data", delimiter="\s+", header=None)
+        array = dataset.values
+
+        dataset_x = array[:, 1:-1].astype(float)
+        dataset_y = array[:, -1]
+
+        main(dataset_x, dataset_y, dataset_name, alpha=0.2, beta=2, iteration=5)
+
     elif dataset_name == 'balance':
-        pass
+        dataset = pd.read_csv("datasets/balance_scale/balance-scale.data", delimiter=",", header=None)
+        array = dataset.values
+
+        dataset_x = array[:, 1:].astype(float)
+        dataset_y = array[:, 0]
+
+        dataset_y[dataset_y == 'B'] = 0
+        dataset_y[dataset_y == 'R'] = 1
+        dataset_y[dataset_y == 'L'] = 2
+
+        dataset_y = dataset_y.astype(int)
+
+        main(dataset_x, dataset_y, dataset_name, alpha=0.2, beta=2, iteration=5)
+
     elif dataset_name in ['pima', 'diabetes']:
         diabetes = load_diabetes()
         dataset_x, dataset_y = diabetes.data, diabetes.target
+
+        main(dataset_x, dataset_y, dataset_name, alpha=0.2, beta=2, iteration=5)
 
     elif dataset_name == 'segmentation':
         pass
@@ -89,4 +111,4 @@ if __name__ == '__main__':
     else:
         raise ValueError('dataset_name must be one of iris, pima/diabetes, wine, sonar')
 
-    main(dataset_x, dataset_y, 'wine', alpha=0.2, beta=2, iteration=10)
+

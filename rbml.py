@@ -51,10 +51,10 @@ class RBML:
             self.x = np.array(x_stars)
 
             # leave-one-out cross validation with knn classifier
-            eval_score = self.evaluate()
-            self.evaluation_scores.append(eval_score)
+            eval_score_acc, eval_score_std = self.evaluate()
+            self.evaluation_scores.append(eval_score_acc)
 
-            print(f'Iteration {it}\t\tAvg margin: {self.avg_margins[-1]:.3f}\tEvaluation score: {eval_score:.3f}')
+            print(f'Iteration {it}\t\tAvg margin: {self.avg_margins[-1]:.3f}\tEvaluation score: {eval_score_acc:.3f}')
             # plot_data_3d(self.x, self.y, title=f'Iteration {it}')
             # plot_data_2d(self.x, self.y, title=f'Iteration {it}')
 
@@ -62,7 +62,7 @@ class RBML:
 
     def evaluate(self):
         if self.dataset in ['iris', 'wine', 'sonar']:
-            acc = self.k_fold_cross_validation(k=len(self.x))
+            acc, _ = self.k_fold_cross_validation(k=len(self.x))
             return acc
         elif self.dataset in ['vowel', 'balance', 'pima']:
             pass
@@ -73,14 +73,13 @@ class RBML:
             For each dataset and each method, the average accuracy 
             and the corresponding standard deviation values were computed.
             """
+            acc, std = self.k_fold_cross_validation(k=10)
+
+            return acc, std
+
         elif self.dataset in ['segmentation', 'letters']:
-            accs = []
-            for i in range(10):
-                acc = self.k_fold_cross_validation(k=10)
-                accs.append(acc)
-            avg_acc = np.mean(accs)
-            std_acc = np.std(accs)
-            return avg_acc, std_acc
+            acc, std = self.k_fold_cross_validation(k=10)
+            return acc, std
 
     def k_fold_cross_validation(self, k=10):
         # n_splits = len(dataset), this is equivalent to the Leave One Out strategy,
@@ -92,7 +91,7 @@ class RBML:
             knn.fit(self.x[train], self.y[train])
             y_pred = knn.predict(self.x[test])
             scores.append(np.sum(self.y[test] == y_pred) / len(self.y[test]))
-        return np.array(scores).mean()
+        return np.array(scores).mean(), np.array(scores).std()
 
     def drag_t(self, i, j):
         vector = self.distance_matrix[i]
