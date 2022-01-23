@@ -38,7 +38,7 @@ def main(dataset_x, dataset_y, dataset_name, alpha=0.5, beta=2, k_neighbors=3, i
     print(f'RBML Evaluation Score: {rbml_acc * 100:.1f}')
 
     #utils.plot_accuracy(rbml.evaluation_scores)
-    utils.plot_mean_mi(rbml.avg_margins)
+    utils.plot_mean_mi(rbml.avg_margins, save_path=f'{dataset_name}_mean_mi.png')
     # utils.plot_data_3d(rbml.x, dataset_y, save_path=f'{dataset_name}_3d_rbml.png', title=f'{dataset_name} dataset after RBML\nRBML Evaluation Score: {rbml_acc:.3f}')
     utils.plot_data_2d(rbml.x, dataset_y, save_path=f'{dataset_name}_2d_rbml.png', title=f'{dataset_name} dataset after RBML\nRBML Evaluation Score: {rbml_acc:.3f}')
 
@@ -57,14 +57,16 @@ def main(dataset_x, dataset_y, dataset_name, alpha=0.5, beta=2, k_neighbors=3, i
 
 
 if __name__ == '__main__':
-    dataset_name = 'balance'
+    dataset_name = 'wine'
 
     if dataset_name == 'iris':
         iris = load_iris()
         dataset_x, dataset_y = iris.data, iris.target
+        main(dataset_x, dataset_y, dataset_name, alpha=0.2, beta=2, iteration=5)
     elif dataset_name == 'wine':
         wine = load_wine()
         dataset_x, dataset_y = wine.data, wine.target
+        main(dataset_x, dataset_y, dataset_name, alpha=0.2, beta=2, iteration=5)
     elif dataset_name == 'sonar':
         dataset = pd.read_csv('datasets/sonar/sonar.all-data', header=None)
         array = dataset.values

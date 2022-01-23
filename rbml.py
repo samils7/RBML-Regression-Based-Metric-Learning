@@ -62,8 +62,8 @@ class RBML:
 
     def evaluate(self):
         if self.dataset in ['iris', 'wine', 'sonar']:
-            acc, _ = self.k_fold_cross_validation(k=len(self.x))
-            return acc
+            acc, std = self.k_fold_cross_validation(k=len(self.x))
+            return acc, std
         elif self.dataset in ['vowel', 'balance', 'pima']:
             pass
             """

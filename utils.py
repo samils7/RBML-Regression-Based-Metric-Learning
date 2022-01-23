@@ -29,7 +29,7 @@ def plot_data_2d(x, y, save_path=None, title=None):
     plt.show()
 
 
-def plot_accuracy(acc):
+def plot_accuracy(acc, save_path=None):
     if isinstance(acc[0], tuple):
         acc = np.array(acc)[:, 0]
     plt.plot(list(range(1, len(acc) + 1)), acc)
@@ -37,14 +37,18 @@ def plot_accuracy(acc):
     plt.title('Accuracy Scores')
     plt.xlabel('Iteration')
     plt.ylabel('Accuracy')
+    if save_path:
+        plt.savefig(save_path)
     plt.show()
 
 
-def plot_mean_mi(mean_mi_list):
+def plot_mean_mi(mean_mi_list, save_path=None):
     plt.plot(list(range(1, len(mean_mi_list) + 1)), mean_mi_list)
     plt.title('Average Margins')
     plt.xlabel('Iteration')
     plt.ylabel('Average Margin')
+    if save_path:
+        plt.savefig(save_path)
     plt.show()
 
 
