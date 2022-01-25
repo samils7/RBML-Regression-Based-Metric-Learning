@@ -1,12 +1,11 @@
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.utils import shuffle
 
 from rbml import RBML
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import KFold
 from sklearn.datasets import load_iris, load_wine
 from metric_learn import LMNN
 import pandas as pd
@@ -46,6 +45,7 @@ class Pipeline:
         self.lmnn = LMNN(k=k_neighbors, verbose=False)
         self.rbml = RBML(a=a, b=b, k_neighbors=k_neighbors, dataset=dataset_name)
         self.random_forest = None
+        self.rf_projected_target = None
 
     def fit(self, train_x, train_y, iteration=4):
         self.knn_raw.fit(train_x, train_y)
@@ -59,6 +59,7 @@ class Pipeline:
         self.random_forest = RandomForestRegressor(n_estimators=train_x.shape[1])
         self.random_forest.fit(lmnn_projected, rbml_projected)
         rf_projected = self.random_forest.predict(lmnn_projected)
+        self.rf_projected_target = rf_projected
         rf_projected = self.scaler_rf.fit_transform(rf_projected)
         self.knn.fit(rf_projected, train_y)
 
@@ -86,7 +87,6 @@ class Pipeline:
 def process_pipeline_1(dataset_x, dataset_y, dataset_name, a=0.5, b=2, k_neighbors=3, iteration=4):
     dataset_x, dataset_y = zscore_normalization(dataset_x, dataset_y)
     kfold = KFold(n_splits=len(dataset_x), shuffle=True, random_state=42)
-    #kfold = KFold(n_splits=100, shuffle=True, random_state=42)
     fold = kfold.split(dataset_x, dataset_y)
     raw_scores = []
     lmnn_scores = []
@@ -106,7 +106,7 @@ def process_pipeline_1(dataset_x, dataset_y, dataset_name, a=0.5, b=2, k_neighbo
                        title=f'{dataset_name} Raw Dataset')
     utils.plot_dataset(pipeline.rbml.x, pipeline.rbml.y, save_path=f'{dataset_name}_rbml_trained.png',
                        title=f'{dataset_name} Dataset RBML Projected')
-    utils.plot_dataset(pipeline.random_forest.predict(dataset_x), dataset_y,
+    utils.plot_dataset(pipeline.rf_projected_target, pipeline.rbml.y,
                        save_path=f'{dataset_name}_rf_projected_target.png',
                        title=f'{dataset_name} Dataset RF Projected Target')
 
@@ -145,7 +145,7 @@ def process_pipeline_2(dataset_x, dataset_y, dataset_name, a=0.5, b=2, k_neighbo
                        title=f'{dataset_name} Raw Dataset')
     utils.plot_dataset(pipeline.rbml.x, pipeline.rbml.y, save_path=f'{dataset_name}_rbml_trained.png',
                        title=f'{dataset_name} Dataset RBML Projected')
-    utils.plot_dataset(pipeline.random_forest.predict(dataset_x), dataset_y,
+    utils.plot_dataset(pipeline.rf_projected_target, pipeline.rbml.y,
                        save_path=f'{dataset_name}_rf_projected_target.png',
                        title=f'{dataset_name} Dataset RF Projected Target')
 
@@ -176,7 +176,7 @@ def process_pipeline_3(dataset_x, dataset_y, dataset_name, a=0.5, b=2, k_neighbo
                        title=f'{dataset_name} Raw Dataset')
     utils.plot_dataset(pipeline.rbml.x, pipeline.rbml.y, save_path=f'{dataset_name}_rbml_trained.png',
                        title=f'{dataset_name} Dataset RBML Projected')
-    utils.plot_dataset(pipeline.random_forest.predict(dataset_x), dataset_y,
+    utils.plot_dataset(pipeline.rf_projected_target, pipeline.rbml.y,
                        save_path=f'{dataset_name}_rf_projected_target.png',
                        title=f'{dataset_name} Dataset RF Projected Target')
 
@@ -187,13 +187,21 @@ def process_pipeline_3(dataset_x, dataset_y, dataset_name, a=0.5, b=2, k_neighbo
 
 if __name__ == '__main__':
     args = parse_args()
-    #datase_names = ['iris', 'wine', 'sonar']
-    #dataset_names = ['vowel', 'balance', 'pima']
-    #dataset_names = ['segmentation', 'letters']
+
     if args.dataset == 'all':
-        dataset_names = reversed(['iris', 'wine', 'sonar','vowel', 'balance', 'pima', 'segmentation', 'letters'])
+        #dataset_names = reversed(['iris', 'wine', 'sonar','vowel', 'balance', 'pima', 'segmentation', 'letters'])
+        # dataset_names = ['iris', 'wine', 'sonar']
+        #dataset_names = ['vowel', 'balance', 'pima']
+        dataset_names = ['segmentation', 'letters']
+    elif args.dataset == 'group1':
+        dataset_names = ['iris', 'wine', 'sonar']
+    elif args.dataset == 'group2':
+        dataset_names = ['vowel', 'balance', 'pima']
+    elif args.dataset == 'group3':
+        dataset_names = ['segmentation', 'letters']
     else:
         dataset_names = [args.dataset]
+
     alpha, beta, k_neighbors, iteration = args.a, args.b, args.k_neighbors, args.iteration
     for dataset_name in dataset_names:
         print(f'Processing {dataset_name} dataset...')

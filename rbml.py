@@ -44,6 +44,11 @@ class RBML:
                 xi_new = (1 - self.a) * xn + self.a * x_h
                 x_stars.append(xi_new)
 
+            # convergence condition
+            if it != 1 and np.mean(margins) > self.avg_margins[-1]:
+                print('Converged at iteration {}'.format(it))
+                break
+
             self.avg_margins.append(np.array(margins).mean())
             self.x = np.array(x_stars)
             #print(f'Iteration {it}\t\tAvg margin: {self.avg_margins[-1]:.3f}')

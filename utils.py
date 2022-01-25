@@ -48,7 +48,7 @@ def plot_accuracy(acc, save_path=None):
 
 
 def plot_mean_mi(mean_mi_list, save_path=None, title='Average Margin'):
-    plt.plot(list(range(1, len(mean_mi_list) + 1)), mean_mi_list)
+    plt.plot(np.arange(1, len(mean_mi_list) + 1), mean_mi_list)
     plt.title(title)
     plt.xlabel('Iteration')
     plt.ylabel('Average Margin')
