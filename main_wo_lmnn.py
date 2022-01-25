@@ -24,7 +24,7 @@ def parse_args():
                         help='beta RBML')
     parser.add_argument('--k_neighbors', type=int, default=3,
                         help='k_neighbors RBML')
-    parser.add_argument('--iteration', type=int, default=5,
+    parser.add_argument('--iteration', type=int, default=4,
                         help='iteration RBML')
     return parser.parse_args()
 
@@ -36,7 +36,7 @@ def zscore_normalization(dataset_x, dataset_y):
 
 
 class Pipeline:
-    def __init__(self, dataset_name, a=0.5, b=2, k_neighbors=3):
+    def __init__(self, dataset_name, a=0.5, b=2, k_neighbors=3, use_lmnn=False):
         self.scaler_lmnn = StandardScaler()
         self.scaler_rbml = StandardScaler()
         self.scaler_rf = StandardScaler()
@@ -46,6 +46,7 @@ class Pipeline:
         self.lmnn = LMNN(k=k_neighbors, verbose=False)
         self.rbml = RBML(a=a, b=b, k_neighbors=k_neighbors, dataset=dataset_name)
         self.random_forest = None
+        self.use_lmnn = use_lmnn
 
     def fit(self, train_x, train_y, iteration=4):
         self.knn_raw.fit(train_x, train_y)
@@ -53,19 +54,29 @@ class Pipeline:
         lmnn_projected = self.lmnn.transform(train_x)
         self.knn_lmnn.fit(lmnn_projected, train_y)
         lmnn_projected = self.scaler_lmnn.fit_transform(lmnn_projected)
-        rbml_projected = self.rbml.fit_transform(x=lmnn_projected, y=train_y, iteration=iteration)
+        if not self.use_lmnn:
+            rbml_projected = self.rbml.fit_transform(train_x, train_y)
+        else:
+            rbml_projected = self.rbml.fit_transform(x=lmnn_projected, y=train_y, iteration=iteration)
         #print(' --> '.join([str(np.round(m, 2)) for m in self.rbml.avg_margins]))
         rbml_projected = self.scaler_rbml.fit_transform(rbml_projected)
         self.random_forest = RandomForestRegressor(n_estimators=train_x.shape[1])
-        self.random_forest.fit(lmnn_projected, rbml_projected)
-        rf_projected = self.random_forest.predict(lmnn_projected)
+        if not self.use_lmnn:
+            self.random_forest.fit(train_x, rbml_projected)
+            rf_projected = self.random_forest.predict(train_x)
+        else:
+            self.random_forest.fit(lmnn_projected, rbml_projected)
+            rf_projected = self.random_forest.predict(lmnn_projected)
         rf_projected = self.scaler_rf.fit_transform(rf_projected)
         self.knn.fit(rf_projected, train_y)
 
     def transform(self, test_x):
-        lmnn_projected = self.lmnn.transform(test_x)
-        lmnn_projected = self.scaler_lmnn.transform(lmnn_projected)
-        rf_projected = self.random_forest.predict(lmnn_projected)
+        if not self.use_lmnn:
+            rf_projected = self.random_forest.predict(test_x)
+        else:
+            lmnn_projected = self.lmnn.transform(test_x)
+            lmnn_projected = self.scaler_lmnn.transform(lmnn_projected)
+            rf_projected = self.random_forest.predict(lmnn_projected)
         rf_projected = self.scaler_rf.transform(rf_projected)
         return self.knn.predict(rf_projected)
 
@@ -190,6 +201,7 @@ if __name__ == '__main__':
     #datase_names = ['iris', 'wine', 'sonar']
     #dataset_names = ['vowel', 'balance', 'pima']
     #dataset_names = ['segmentation', 'letters']
+    #dataset_names = ['sonar', 'balance']
     if args.dataset == 'all':
         dataset_names = reversed(['iris', 'wine', 'sonar','vowel', 'balance', 'pima', 'segmentation', 'letters'])
     else:

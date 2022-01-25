@@ -21,12 +21,10 @@ class RBML:
         self.y = None
         self.distance_matrix = None
         self.avg_margins = []
-        self.evaluation_scores = []
 
     def fit_transform(self, x, y, iteration=1):
         self.x = x
         self.y = y
-
         for it in range(1, iteration + 1):
             # Distance matrix for all xi points
             self.distance_matrix = self.calculate_distance_matrix(self.x)
@@ -37,7 +35,6 @@ class RBML:
                 mi = self.calculate_mi(i, self.distance_matrix[i])
                 margins.append(mi)
                 xn = self.calculate_xn(i, self.distance_matrix[i])
-
                 x_impostor = self.calculate_impostor_mean(mi, self.distance_matrix[i], i)
                 if np.isnan(x_impostor).any():
                     x_h = x[i].copy()
@@ -49,49 +46,9 @@ class RBML:
 
             self.avg_margins.append(np.array(margins).mean())
             self.x = np.array(x_stars)
-
-            # leave-one-out cross validation with knn classifier
-            eval_score_acc, eval_score_std = self.evaluate()
-            self.evaluation_scores.append(eval_score_acc)
-
-            print(f'Iteration {it}\t\tAvg margin: {self.avg_margins[-1]:.3f}\tEvaluation score: {eval_score_acc:.3f}')
-            # plot_data_3d(self.x, self.y, title=f'Iteration {it}')
-            # plot_data_2d(self.x, self.y, title=f'Iteration {it}')
+            #print(f'Iteration {it}\t\tAvg margin: {self.avg_margins[-1]:.3f}')
 
         return self.x
-
-    def evaluate(self):
-        if self.dataset in ['iris', 'wine', 'sonar']:
-            acc, std = self.k_fold_cross_validation(k=len(self.x))
-            return acc, std
-        elif self.dataset in ['vowel', 'balance', 'pima']:
-            pass
-            """
-            250 samples were randomly selected as a training set and the rest were used to define the test set. 
-            Hence, 278, 375, and 518 test samples were available for each dataset, respectively. 
-            This process was repeated 10 times independently. 
-            For each dataset and each method, the average accuracy 
-            and the corresponding standard deviation values were computed.
-            """
-            acc, std = self.k_fold_cross_validation(k=10)
-
-            return acc, std
-
-        elif self.dataset in ['segmentation', 'letters']:
-            acc, std = self.k_fold_cross_validation(k=10)
-            return acc, std
-
-    def k_fold_cross_validation(self, k=10):
-        # n_splits = len(dataset), this is equivalent to the Leave One Out strategy,
-        kfold = KFold(n_splits=k)
-        fold = kfold.split(self.x, self.y)
-        scores = []
-        for train, test in fold:
-            knn = KNeighborsClassifier(n_neighbors=self.k_neighbors)
-            knn.fit(self.x[train], self.y[train])
-            y_pred = knn.predict(self.x[test])
-            scores.append(np.sum(self.y[test] == y_pred) / len(self.y[test]))
-        return np.array(scores).mean(), np.array(scores).std()
 
     def drag_t(self, i, j):
         vector = self.distance_matrix[i]
